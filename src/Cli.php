@@ -105,6 +105,8 @@ class Cli
                 $this->rgb($target, $value);
                 break;
             case 'colortemp': // TODO function
+                $this->validateTarget();
+                $this->colortemp($target, $value);
                 break;
             case 'name': // TODO function
                 break;
@@ -136,17 +138,35 @@ class Cli
         // enforce bounds
         if ($value < 0) {
             $value = 0;
-        } elseif ($value > 255) {
-            $value = 255;
+        } elseif ($value > 254) {
+            $value = 254;
         }
-        $lights = $this->hub->getLights();
-        $lights[$target]->setBrightness($value);
-        $this->console->green('Brightness of target ' . $target . ' set to ' . $value);
+        $this->lights[$target]->setBrightness($value);
+        $this->console->green(
+            "Brightness of target ID {$target} ({$this->lights[$target]->getName()}) set to {$value} " .
+                '(' . round(($value / 254) * 100) . '%)'
+        );
         exit();
     }
 
     private function colortemp(int $target, int $value): void
     {
+        //validate value
+        if (\false === \is_numeric($value)) {
+            $this->console->error('Color temp value must be a number [153-500]');
+            exit();
+        }
+        // enforce bounds
+        if ($value < 153) {
+            $value = 153;
+        } elseif ($value > 500) {
+            $value = 500;
+        }
+        $this->lights[$target]->setColorTemp($value);
+        $this->console->green(
+            "Color temp of target ID {$target} ({$this->lights[$target]->getName()}) set to {$value}"
+        );
+        exit();
     }
 
     private function effect(int $target, int $value): void
@@ -243,13 +263,22 @@ class Cli
 
         $brightness = $this->lights[$target]->getBrightness();
         $this->lights[$target]->setRGB($red, $green, $blue);
-        $newBrightness = $this->lights[$target]->getBrightness();
+        $this->console->green(
+            "Color temp of target ID {$target} ({$this->lights[$target]->getName()}) set to " .
+                "<red>{$red}</red>, <green>{$green}</green>, <blue>{$blue}</blue>"
+        );
 
+        $newBrightness = $this->lights[$target]->getBrightness();
         if ($newBrightness !== $brightness) {
             $this->logger->notice('Color change adjusted brightness', [
                 'Was' => $brightness,
-                'Now' => $brightness
+                'Now' => $newBrightness
             ]);
+            $this->console->out(
+                "<yellow>NOTICE:</yellow> color change adjusted brightness from " .
+                    $brightness . ' to ' .
+                    $newBrightness . ''
+            );
         }
     }
 
