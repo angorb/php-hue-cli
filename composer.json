@@ -1,0 +1,23 @@
+{
+    "name": "angorb/hue-cli",
+    "require": {
+        "sqmk/phue": "^1.7",
+        "league/climate": "^3.7",
+        "monolog/monolog": "^2.3",
+        "vlucas/phpdotenv": "^5.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Angorb\\HueCli\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "nick brogna",
+            "email": "hello@nickbrogna.com"
+        }
+    ]
+}
