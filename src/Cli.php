@@ -4,12 +4,13 @@ namespace Angorb\HueCli;
 
 use League\CLImate\CLImate;
 use Monolog\Handler\RotatingFileHandler;
+use Monolog\Handler\SyslogHandler;
 use Monolog\Logger;
 use Phue\Client;
 use Phue\Command\Ping;
 use Phue\Transport\Exception\ConnectionException;
 
-class Console
+class Cli
 {
     protected CLImate $console;
     protected Client $hub;
@@ -40,7 +41,7 @@ class Console
         if (\is_null($this->logger)) {
             $this->logger = new Logger(__CLASS__);
             $this->logger->pushHandler(
-                new RotatingFileHandler(__DIR__ . '/../logs/console.log', 30)
+                new SyslogHandler('hue-cli-php')
             );
         }
 
@@ -99,6 +100,18 @@ class Console
                 $this->validateTarget();
                 $this->brightness($target, $value);
                 break;
+            case 'rgb':
+                $this->validateTarget();
+                $this->rgb($target, $value);
+                break;
+            case 'colortemp': // TODO function
+                break;
+            case 'name': // TODO function
+                break;
+            case 'alert': // TODO function
+                break;
+            case 'effect': // TODO function
+                break;
             default:
                 $this->unknownCommand($command);
                 $this->usage();
@@ -106,28 +119,14 @@ class Console
         }
     }
 
-    private function list()
+    /********************************
+     *          COMMANDS
+     *********************************/
+    private function alert(int $target, int $value): void
     {
-        foreach ($this->lights as $lightId => $light) {
-            $lights[] = [
-                '<bold>ID</bold>' => $lightId,
-                '<bold>Name</bold>' => $light->getName()
-            ];
-        }
-        $this->console->out(\sprintf(
-            '<bold><green>%u</green></bold> lights ',
-            \count($this->lights)
-        ));
-        $this->console->table($lights);
     }
 
-    public function onState(int $target, ?bool $state = \null)
-    {
-        $state = \is_null($state) ? !$this->lights[$target]->isOn() : $state;
-        $this->lights[$target]->setOn($state);
-    }
-
-    private function brightness(int $target, int $value)
+    private function brightness(int $target, int $value): void
     {
         //validate value
         if (\false === \is_numeric($value)) {
@@ -146,7 +145,15 @@ class Console
         exit();
     }
 
-    private function info(?int $target)
+    private function colortemp(int $target, int $value): void
+    {
+    }
+
+    private function effect(int $target, int $value): void
+    {
+    }
+
+    private function info(?int $target): void
     {
         $target = \is_null($target) ? \array_keys($this->lights) : [$target];
         $info = [];
@@ -192,18 +199,69 @@ class Console
         }
     }
 
+    private function list(): void
+    {
+        foreach ($this->lights as $lightId => $light) {
+            $lights[] = [
+                '<bold>ID</bold>' => $lightId,
+                '<bold>Name</bold>' => $light->getName()
+            ];
+        }
+        $this->console->out(\sprintf(
+            '<bold><green>%u</green></bold> lights ',
+            \count($this->lights)
+        ));
+        $this->console->table($lights);
+    }
+
+    private function name(int $target, int $value): void
+    {
+    }
+
+    public function onState(int $target, ?bool $state = \null): void
+    {
+        $state = \is_null($state) ? !$this->lights[$target]->isOn() : $state;
+        $this->lights[$target]->setOn($state);
+    }
+
+    private function rgb(int $target, string $value): void
+    {
+        // validate value
+        if (\strlen($value) !== 6 || !\ctype_xdigit($value)) {
+            $this->console->error('Value must be a RGB hexadecimal color');
+            exit();
+        }
+
+        $red    = \hexdec(\substr($value, 0, 2));
+        $green  = \hexdec(\substr($value, 2, 2));
+        $blue   = \hexdec(\substr($value, 4, 2));
+
+        $this->logger->debug('Converted RGB color', [
+            'hex' => $value,
+            'rgb' => "({$red}, {$green}, {$blue})"
+        ]);
+
+        $brightness = $this->lights[$target]->getBrightness();
+        $this->lights[$target]->setRGB($red, $green, $blue);
+        $newBrightness = $this->lights[$target]->getBrightness();
+
+        if ($newBrightness !== $brightness) {
+            $this->logger->notice('Color change adjusted brightness', [
+                'Was' => $brightness,
+                'Now' => $brightness
+            ]);
+        }
+    }
+
     private function usage()
     {
     }
 
-    private function unknownCommand(?string $command = \null)
-    {
-        $command = empty($command) ? '' : " \"{$command}\" ";
-        $this->logger->warning('Unknown command', ['Command' => $command]);
-        $this->console->error("Unknown command{$command}");
-    }
+    /********************************
+     *          UTILITY
+     *********************************/
 
-    private function validateTarget()
+    private function validateTarget(): void
     {
         if (\false === $this->console->arguments->defined('target')) {
             $this->console->error('Must supply a target ID');
@@ -213,7 +271,6 @@ class Console
         $target = $this->console->arguments->get('target');
         if (\false === \is_numeric($target)) {
             $this->console->error('Target ID must be numeric');
-            \var_dump($target);
             exit();
         }
 
@@ -222,5 +279,12 @@ class Console
             $this->console->error('Provided target does not exist');
             exit();
         }
+    }
+
+    private function unknownCommand(?string $command = \null)
+    {
+        $command = empty($command) ? '' : " \"{$command}\" ";
+        $this->logger->warning('Unknown command', ['Command' => $command]);
+        $this->console->error("Unknown command{$command}");
     }
 }
