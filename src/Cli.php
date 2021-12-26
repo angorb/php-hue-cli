@@ -99,6 +99,18 @@ class Cli
                 $this->validateTarget();
                 $this->brightness($target, $value);
                 break;
+            case 'rgb':
+                $this->validateTarget();
+                $this->rgb($target, $value);
+                break;
+            case 'colortemp': // TODO function
+                break;
+            case 'name': // TODO function
+                break;
+            case 'alert': // TODO function
+                break;
+            case 'effect': // TODO function
+                break;
             default:
                 $this->unknownCommand($command);
                 $this->usage();
@@ -109,26 +121,8 @@ class Cli
     /********************************
      *          COMMANDS
      *********************************/
-
-    private function list(): void
+    private function alert(int $target, int $value): void
     {
-        foreach ($this->lights as $lightId => $light) {
-            $lights[] = [
-                '<bold>ID</bold>' => $lightId,
-                '<bold>Name</bold>' => $light->getName()
-            ];
-        }
-        $this->console->out(\sprintf(
-            '<bold><green>%u</green></bold> lights ',
-            \count($this->lights)
-        ));
-        $this->console->table($lights);
-    }
-
-    public function onState(int $target, ?bool $state = \null): void
-    {
-        $state = \is_null($state) ? !$this->lights[$target]->isOn() : $state;
-        $this->lights[$target]->setOn($state);
     }
 
     private function brightness(int $target, int $value): void
@@ -148,6 +142,14 @@ class Cli
         $lights[$target]->setBrightness($value);
         $this->console->green('Brightness of target ' . $target . ' set to ' . $value);
         exit();
+    }
+
+    private function colortemp(int $target, int $value): void
+    {
+    }
+
+    private function effect(int $target, int $value): void
+    {
     }
 
     private function info(?int $target): void
@@ -196,15 +198,62 @@ class Cli
         }
     }
 
-    private function usage()
+    private function list(): void
+    {
+        foreach ($this->lights as $lightId => $light) {
+            $lights[] = [
+                '<bold>ID</bold>' => $lightId,
+                '<bold>Name</bold>' => $light->getName()
+            ];
+        }
+        $this->console->out(\sprintf(
+            '<bold><green>%u</green></bold> lights ',
+            \count($this->lights)
+        ));
+        $this->console->table($lights);
+    }
+
+    private function name(int $target, int $value): void
     {
     }
 
-    private function unknownCommand(?string $command = \null)
+    public function onState(int $target, ?bool $state = \null): void
     {
-        $command = empty($command) ? '' : " \"{$command}\" ";
-        $this->logger->warning('Unknown command', ['Command' => $command]);
-        $this->console->error("Unknown command{$command}");
+        $state = \is_null($state) ? !$this->lights[$target]->isOn() : $state;
+        $this->lights[$target]->setOn($state);
+    }
+
+    private function rgb(int $target, string $value): void
+    {
+        // validate value
+        if (\strlen($value) !== 6 || !\ctype_xdigit($value)) {
+            $this->console->error('Value must be a RGB hexadecimal color');
+            exit();
+        }
+
+        $red    = \hexdec(\substr($value, 0, 2));
+        $green  = \hexdec(\substr($value, 2, 2));
+        $blue   = \hexdec(\substr($value, 4, 2));
+
+        $this->logger->debug('Converted RGB color', [
+            'hex' => $value,
+            'rgb' => "({$red}, {$green}, {$blue})"
+        ]);
+
+        $brightness = $this->lights[$target]->getBrightness();
+        $this->lights[$target]->setRGB($red, $green, $blue);
+        $newBrightness = $this->lights[$target]->getBrightness();
+
+        if ($newBrightness !== $brightness) {
+            $this->logger->notice('Color change adjusted brightness', [
+                'Was' => $brightness,
+                'Now' => $brightness
+            ]);
+        }
+    }
+
+    private function usage()
+    {
     }
 
     /********************************
@@ -221,7 +270,6 @@ class Cli
         $target = $this->console->arguments->get('target');
         if (\false === \is_numeric($target)) {
             $this->console->error('Target ID must be numeric');
-            \var_dump($target);
             exit();
         }
 
@@ -230,5 +278,12 @@ class Cli
             $this->console->error('Provided target does not exist');
             exit();
         }
+    }
+
+    private function unknownCommand(?string $command = \null)
+    {
+        $command = empty($command) ? '' : " \"{$command}\" ";
+        $this->logger->warning('Unknown command', ['Command' => $command]);
+        $this->console->error("Unknown command{$command}");
     }
 }
