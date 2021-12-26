@@ -4,6 +4,7 @@ namespace Angorb\HueCli;
 
 use League\CLImate\CLImate;
 use Monolog\Handler\RotatingFileHandler;
+use Monolog\Handler\SyslogHandler;
 use Monolog\Logger;
 use Phue\Client;
 use Phue\Command\Ping;
@@ -40,7 +41,7 @@ class Cli
         if (\is_null($this->logger)) {
             $this->logger = new Logger(__CLASS__);
             $this->logger->pushHandler(
-                new RotatingFileHandler(__DIR__ . '/../logs/console.log', 30)
+                new SyslogHandler('hue-cli-php')
             );
         }
 

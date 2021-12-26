@@ -1,0 +1,18 @@
+{
+    "main": "bin/main.php",
+    "directories": [
+        "vendor",
+        "src",
+        "config",
+        "logs"
+    ],
+    "files": [
+      "config/.env"
+    ],
+    "blacklist": [
+        "bin/hue-cli.sh"
+    ],
+    "exclude-dev-files": false,
+    "compression": "GZ",
+    "output": "bin/hue-cli"
+}
