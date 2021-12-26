@@ -9,7 +9,7 @@ use Phue\Client;
 use Phue\Command\Ping;
 use Phue\Transport\Exception\ConnectionException;
 
-class Console
+class Cli
 {
     protected CLImate $console;
     protected Client $hub;
@@ -106,7 +106,11 @@ class Console
         }
     }
 
-    private function list()
+    /********************************
+     *          COMMANDS
+     *********************************/
+
+    private function list(): void
     {
         foreach ($this->lights as $lightId => $light) {
             $lights[] = [
@@ -121,13 +125,13 @@ class Console
         $this->console->table($lights);
     }
 
-    public function onState(int $target, ?bool $state = \null)
+    public function onState(int $target, ?bool $state = \null): void
     {
         $state = \is_null($state) ? !$this->lights[$target]->isOn() : $state;
         $this->lights[$target]->setOn($state);
     }
 
-    private function brightness(int $target, int $value)
+    private function brightness(int $target, int $value): void
     {
         //validate value
         if (\false === \is_numeric($value)) {
@@ -146,7 +150,7 @@ class Console
         exit();
     }
 
-    private function info(?int $target)
+    private function info(?int $target): void
     {
         $target = \is_null($target) ? \array_keys($this->lights) : [$target];
         $info = [];
@@ -203,7 +207,11 @@ class Console
         $this->console->error("Unknown command{$command}");
     }
 
-    private function validateTarget()
+    /********************************
+     *          UTILITY
+     *********************************/
+
+    private function validateTarget(): void
     {
         if (\false === $this->console->arguments->defined('target')) {
             $this->console->error('Must supply a target ID');
