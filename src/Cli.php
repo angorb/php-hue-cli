@@ -2,6 +2,8 @@
 
 namespace Angorb\HueCli;
 
+use Angorb\HueCli\Strings\Message;
+use Angorb\HueCli\Strings\Pattern;
 use League\CLImate\CLImate;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\SyslogHandler;
@@ -55,7 +57,7 @@ class Cli
             $this->dispatchCommand();
         } catch (ConnectionException $ex) {
             $this->logger->critical($ex->getMessage());
-            $this->console->error('Could not connect to hue hub.');
+            $this->console->error(Message::HUB_CONNECT_ERROR);
         }
     }
 
@@ -69,7 +71,7 @@ class Cli
         $value = $this->console->arguments->defined('value') ? $this->console->arguments->get('value') : \null;
 
         $this->logger->debug(
-            'Got command',
+            Message::LOG_CMD_RECEIVED,
             [
                 'command' => $command,
                 'target' => $target,
@@ -132,7 +134,7 @@ class Cli
     {
         //validate value
         if (\false === \is_numeric($value)) {
-            $this->console->error('Brightness value must be a number [0-255]');
+            $this->console->error(Message::CMD_BRIGHTNESS_INVALID_TYPE);
             exit();
         }
         // enforce bounds
@@ -142,9 +144,14 @@ class Cli
             $value = 254;
         }
         $this->lights[$target]->setBrightness($value);
-        $this->console->green(
-            "Brightness of target ID {$target} ({$this->lights[$target]->getName()}) set to {$value} " .
-                '(' . round(($value / 254) * 100) . '%)'
+        $this->console->out(
+            \sprintf(
+                Pattern::CMD_BRIGHTNESS,
+                $target,
+                $this->lights[$target]->getName(),
+                $value,
+                round(($value / 254) * 100)
+            )
         );
         exit();
     }
@@ -153,7 +160,7 @@ class Cli
     {
         //validate value
         if (\false === \is_numeric($value)) {
-            $this->console->error('Color temp value must be a number [153-500]');
+            $this->console->error(Message::CMD_COLORTEMP_INVALID_TYPE);
             exit();
         }
         // enforce bounds
@@ -163,8 +170,13 @@ class Cli
             $value = 500;
         }
         $this->lights[$target]->setColorTemp($value);
-        $this->console->green(
-            "Color temp of target ID {$target} ({$this->lights[$target]->getName()}) set to {$value}"
+        $this->console->out(
+            \sprintf(
+                Pattern::CMD_COLOR_TEMP,
+                $target,
+                $this->lights[$target]->getName(),
+                $value
+            )
         );
         exit();
     }
@@ -228,7 +240,7 @@ class Cli
             ];
         }
         $this->console->out(\sprintf(
-            '<bold><green>%u</green></bold> lights ',
+            Pattern::CMD_LIST,
             \count($this->lights)
         ));
         $this->console->table($lights);
@@ -248,7 +260,7 @@ class Cli
     {
         // validate value
         if (\strlen($value) !== 6 || !\ctype_xdigit($value)) {
-            $this->console->error('Value must be a RGB hexadecimal color');
+            $this->console->error(Message::CMD_RGB_INVALID_TYPE);
             exit();
         }
 
@@ -256,28 +268,38 @@ class Cli
         $green  = \hexdec(\substr($value, 2, 2));
         $blue   = \hexdec(\substr($value, 4, 2));
 
-        $this->logger->debug('Converted RGB color', [
+        $this->logger->debug(Message::LOG_RGB_CONVERT, [
             'hex' => $value,
             'rgb' => "({$red}, {$green}, {$blue})"
         ]);
 
         $brightness = $this->lights[$target]->getBrightness();
         $this->lights[$target]->setRGB($red, $green, $blue);
-        $this->console->green(
-            "Color temp of target ID {$target} ({$this->lights[$target]->getName()}) set to " .
-                "<red>{$red}</red>, <green>{$green}</green>, <blue>{$blue}</blue>"
+        $this->console->out(
+            \sprintf(
+                Pattern::CMD_RGB_COLOR,
+                $target,
+                $this->lights[$target]->getName(),
+                $red,
+                $green,
+                $blue
+            )
         );
 
         $newBrightness = $this->lights[$target]->getBrightness();
         if ($newBrightness !== $brightness) {
-            $this->logger->notice('Color change adjusted brightness', [
+            $this->logger->notice(Message::LOG_RGB_BRIGHTNESS_CHANGE, [
                 'Was' => $brightness,
                 'Now' => $newBrightness
             ]);
             $this->console->out(
-                "<yellow>NOTICE:</yellow> color change adjusted brightness from " .
-                    $brightness . ' to ' .
-                    $newBrightness . ''
+                \sprintf(
+                    Pattern::CMD_RGB_BRIGHTNESS,
+                    $brightness,
+                    \round(($brightness / 255) * 100),
+                    $newBrightness,
+                    \round(($newBrightness / 255) * 100),
+                )
             );
         }
     }
@@ -293,19 +315,19 @@ class Cli
     private function validateTarget(): void
     {
         if (\false === $this->console->arguments->defined('target')) {
-            $this->console->error('Must supply a target ID');
+            $this->console->error(Message::VALIDATE_MISSING_TARGET);
             exit();
         }
 
         $target = $this->console->arguments->get('target');
         if (\false === \is_numeric($target)) {
-            $this->console->error('Target ID must be numeric');
+            $this->console->error(Message::VALIDATE_NON_NUMERIC_TARGET);
             exit();
         }
 
         $lights = $this->hub->getLights();
         if (\false === \array_key_exists($target, $lights)) {
-            $this->console->error('Provided target does not exist');
+            $this->console->error(Message::VALIDATE_INVALID_TARGET);
             exit();
         }
     }
