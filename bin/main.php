@@ -2,9 +2,10 @@
 
 use Angorb\HueCli\Cli;
 
-error_reporting(E_ALL && ~E_DEPRECATED);
-
 require_once __DIR__ . '/../vendor/autoload.php';
+
+error_reporting(E_ALL ^ E_DEPRECATED);
+
 
 $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../config');
 $dotenv->load();
