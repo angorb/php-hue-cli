@@ -2,22 +2,23 @@
 
 namespace Angorb\HueCli\Commands;
 
+use Angorb\HueCli\Environment;
 use Angorb\HueCli\Strings\Pattern;
 
 class LightList extends AbstractCommand
 {
-    public function __construct($console, $lights)
+    protected function do($env)
     {
-        foreach ($lights as $lightId => $light) {
+        foreach ($env->lights as $lightId => $light) {
             $lights[] = [
                 '<bold>ID</bold>' => $lightId,
                 '<bold>Name</bold>' => $light->getName()
             ];
         }
-        $console->out(\sprintf(
+        $env->console->out(\sprintf(
             Pattern::CMD_LIST,
-            \count($this->lights)
+            \count($env->lights)
         ));
-        $console->table($lights);
+        $env->console->table($lights);
     }
 }
