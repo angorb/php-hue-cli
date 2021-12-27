@@ -2,10 +2,10 @@
 
 namespace Angorb\HueCli;
 
+use Angorb\HueCli\Commands\LightList;
 use Angorb\HueCli\Strings\Message;
 use Angorb\HueCli\Strings\Pattern;
 use League\CLImate\CLImate;
-use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\SyslogHandler;
 use Monolog\Logger;
 use Phue\Client;
@@ -79,35 +79,34 @@ class Cli
             ]
         );
 
+        // General Commands
         switch ($command) {
             case 'list':
-                $this->list();
+                new LightList($this->console, $this->lights);
                 break;
             case 'info':
                 $this->info($target);
                 break;
+        }
+        // Targeted Commands
+        $this->validateTarget();
+        switch ($command) {
             case 'on':
-                $this->validateTarget();
                 $this->onState($target, \true);
                 break;
             case 'off':
-                $this->validateTarget();
                 $this->onState($target, \false);
                 break;
             case 'toggle':
-                $this->validateTarget();
                 $this->onState($target);
                 break;
             case 'brightness':
-                $this->validateTarget();
                 $this->brightness($target, $value);
                 break;
             case 'rgb':
-                $this->validateTarget();
                 $this->rgb($target, $value);
                 break;
             case 'colortemp': // TODO function
-                $this->validateTarget();
                 $this->colortemp($target, $value);
                 break;
             case 'name': // TODO function
@@ -233,17 +232,6 @@ class Cli
 
     private function list(): void
     {
-        foreach ($this->lights as $lightId => $light) {
-            $lights[] = [
-                '<bold>ID</bold>' => $lightId,
-                '<bold>Name</bold>' => $light->getName()
-            ];
-        }
-        $this->console->out(\sprintf(
-            Pattern::CMD_LIST,
-            \count($this->lights)
-        ));
-        $this->console->table($lights);
     }
 
     private function name(int $target, int $value): void
