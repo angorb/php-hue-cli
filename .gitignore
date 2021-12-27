@@ -2,3 +2,5 @@
 /logs/*
 /vendor
 /vendor-bin
+/bin/hue-cli
+bin/hue-cli

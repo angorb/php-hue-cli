@@ -6,7 +6,6 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 error_reporting(E_ALL ^ E_DEPRECATED);
 
-
 $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../config');
 $dotenv->load();
 $dotenv->required('HUE_HUB_IP')->allowedRegexValues('/([0-9\.]+){7,15}/'); // TODO better

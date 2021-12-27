@@ -20,5 +20,10 @@
             "name": "nick brogna",
             "email": "hello@nickbrogna.com"
         }
-    ]
+    ],
+    "config": {
+        "allow-plugins": {
+            "bamarni/composer-bin-plugin": true
+        }
+    }
 }
